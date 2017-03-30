@@ -1,0 +1,117 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "ProjectPrefix": {
+      "defaultValue": "peek",
+      "type": "string"
+    },
+    "DatabaseAdminUsername": {
+      "defaultValue": "sqladmin",
+      "type": "string"
+    },
+    "DatabaseAdminPassword": {
+      "defaultValue": "sqladmin",
+      "type": "securestring",
+      "minLength": 1
+    }
+  },
+  "variables": {
+    "servers_peek_server_name": "[concat(parameters('ProjectPrefix'),'-server')]",
+    "storageAccounts_tylerbillingdashboard_name": "[toLower(concat(parameters('ProjectPrefix'),'dashboard'))]",
+    "storageAccounts_tylerbillingdata_name": "[toLower(concat(parameters('ProjectPrefix'),'data'))]",
+    "serverfarms_peek_plan_name": "[concat(parameters('ProjectPrefix'),'-plan')]",
+    "sites_tylerpeek_name": "[parameters('ProjectPrefix')]",
+    "databases_peek_db_name": "[concat(parameters('ProjectPrefix'),'-db')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Sql/servers",
+      "kind": "v12.0",
+      "name": "[variables('servers_peek_server_name')]",
+      "apiVersion": "2014-04-01-preview",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "SQL Server"
+      },
+      "properties": {
+        "administratorLogin": "[parameters('DatabaseAdminUsername')]",
+        "administratorLoginPassword": "[parameters('DatabaseAdminPassword')]",
+        "version": "12.0"
+      },
+      "dependsOn": []
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "tags": {
+        "displayName": "WebJob Dashboard Storage Account"
+      },
+      "sku": {
+        "name": "Standard_LRS",
+        "tier": "Standard"
+      },
+      "kind": "Storage",
+      "name": "[variables('storageAccounts_tylerbillingdashboard_name')]",
+      "apiVersion": "2016-01-01",
+      "location": "[resourceGroup().location]",
+      "properties": {},
+      "dependsOn": []
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "sku": {
+        "name": "Standard_LRS",
+        "tier": "Standard"
+      },
+      "kind": "Storage",
+      "name": "[variables('storageAccounts_tylerbillingdata_name')]",
+      "apiVersion": "2016-01-01",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "WebJob Data Storage Account"
+      },
+      "properties": {},
+      "dependsOn": []
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "tags": {
+        "displayName": "App Service Plan"
+      },
+      "sku": {
+        "name": "B3",
+        "tier": "Basic",
+        "size": "B3",
+        "family": "B",
+        "capacity": 1
+      },
+      "kind": "app",
+      "name": "[variables('serverfarms_peek_plan_name')]",
+      "apiVersion": "2015-08-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "name": "[variables('serverfarms_peek_plan_name')]",
+        "numberOfWorkers": 1
+      },
+      "dependsOn": []
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "tags": {
+        "displayName": "Web App"
+      },
+      "kind": "app",
+      "name": "[variables('sites_tylerpeek_name')]",
+      "apiVersion": "2015-08-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "name": "[variables('sites_tylerpeek_name')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('serverfarms_peek_plan_name'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('serverfarms_peek_plan_name'))]"
+      ]
+    },
+    
+  ]
+}
