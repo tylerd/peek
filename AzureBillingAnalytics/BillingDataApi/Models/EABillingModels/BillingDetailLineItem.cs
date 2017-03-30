@@ -74,7 +74,7 @@ namespace BillingDataApi.Models.EABillingModels
             b.Component = items[21].FormatBillingLineItem();
             b.ServiceInfo1 = items[22].FormatBillingLineItem();
             b.ServiceInfo2 = items[23].FormatBillingLineItem();
-            b.AdditionalInfo = items[24].FormatBillingLineItem();
+            b.AdditionalInfo = items[24];
             b.Tags = items[25];
 
             if (items.Length > 26)
