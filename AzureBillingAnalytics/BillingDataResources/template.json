@@ -14,21 +14,27 @@
       "defaultValue": "sqladmin",
       "type": "securestring",
       "minLength": 1
+    },
+    "EAEnrollmentNumber": {
+      "type": "string"
+    },
+    "EAEnrollmentAPIKey": {
+      "type": "securestring"
     }
   },
   "variables": {
-    "servers_peek_server_name": "[concat(parameters('ProjectPrefix'),'-server')]",
-    "storageAccounts_tylerbillingdashboard_name": "[toLower(concat(parameters('ProjectPrefix'),'dashboard'))]",
-    "storageAccounts_tylerbillingdata_name": "[toLower(concat(parameters('ProjectPrefix'),'data'))]",
-    "serverfarms_peek_plan_name": "[concat(parameters('ProjectPrefix'),'-plan')]",
-    "sites_tylerpeek_name": "[parameters('ProjectPrefix')]",
-    "databases_peek_db_name": "[concat(parameters('ProjectPrefix'),'-db')]"
+    "sql_server_name": "[concat(parameters('ProjectPrefix'),'-server')]",
+    "storageAccounts_dashboard_name": "[toLower(concat(parameters('ProjectPrefix'),'dashboard'))]",
+    "storageAccounts_data_name": "[toLower(concat(parameters('ProjectPrefix'),'data'))]",
+    "plan_name": "[concat(parameters('ProjectPrefix'),'-plan')]",
+    "site_name": "[parameters('ProjectPrefix')]",
+    "database_name": "[concat(parameters('ProjectPrefix'),'-db')]"
   },
   "resources": [
     {
       "type": "Microsoft.Sql/servers",
       "kind": "v12.0",
-      "name": "[variables('servers_peek_server_name')]",
+      "name": "[variables('sql_server_name')]",
       "apiVersion": "2014-04-01-preview",
       "location": "[resourceGroup().location]",
       "tags": {
@@ -51,7 +57,7 @@
         "tier": "Standard"
       },
       "kind": "Storage",
-      "name": "[variables('storageAccounts_tylerbillingdashboard_name')]",
+      "name": "[variables('storageAccounts_dashboard_name')]",
       "apiVersion": "2016-01-01",
       "location": "[resourceGroup().location]",
       "properties": {},
@@ -64,7 +70,7 @@
         "tier": "Standard"
       },
       "kind": "Storage",
-      "name": "[variables('storageAccounts_tylerbillingdata_name')]",
+      "name": "[variables('storageAccounts_data_name')]",
       "apiVersion": "2016-01-01",
       "location": "[resourceGroup().location]",
       "tags": {
@@ -86,11 +92,11 @@
         "capacity": 1
       },
       "kind": "app",
-      "name": "[variables('serverfarms_peek_plan_name')]",
+      "name": "[variables('plan_name')]",
       "apiVersion": "2015-08-01",
       "location": "[resourceGroup().location]",
       "properties": {
-        "name": "[variables('serverfarms_peek_plan_name')]",
+        "name": "[variables('plan_name')]",
         "numberOfWorkers": 1
       },
       "dependsOn": []
@@ -101,17 +107,56 @@
         "displayName": "Web App"
       },
       "kind": "app",
-      "name": "[variables('sites_tylerpeek_name')]",
+      "name": "[variables('site_name')]",
       "apiVersion": "2015-08-01",
       "location": "[resourceGroup().location]",
       "properties": {
-        "name": "[variables('sites_tylerpeek_name')]",
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('serverfarms_peek_plan_name'))]"
+        "name": "[variables('site_name')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('plan_name'))]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', variables('serverfarms_peek_plan_name'))]"
+        "[resourceId('Microsoft.Web/serverfarms', variables('plan_name'))]"
+      ],
+      "resources": [
+        {
+          "apiVersion": "2015-08-01",
+          "type": "config",
+          "name": "connectionstrings",
+          "dependsOn": [
+            "[variables('site_name')]"
+          ],
+          "properties": {
+            "AzureAnalyticsDbModel": {
+              "value": "[concat('Data Source=tcp:', reference(concat('Microsoft.Sql/servers/', variables('sql_server_name'))).fullyQualifiedDomainName, ',1433;Initial Catalog=', variables('database_name'), ';User Id=', parameters('DatabaseAdminUsername'), '@', reference(concat('Microsoft.Sql/servers/', variables('sql_server_name'))).fullyQualifiedDomainName, ';Password=', parameters('DatabaseAdminPassword'), ';')]",
+              "type": "SQLAzure"
+            }
+          }
+        },
+        {
+          "apiVersion": "2015-08-01",
+          "name": "web",
+          "type": "config",
+          "dependsOn": [
+            "[variables('site_name')]"
+          ],
+          "properties": {
+            "alwaysOn": true
+          }
+        },
+        {
+          "apiVersion": "2015-08-01",
+          "type": "config",
+          "name": "appsettings",
+          "dependsOn": [
+            "[variables('site_name')]"
+          ],
+          "properties": {
+            "EA.EnrolmentNumber": "[parameters('EAEnrollmentNumber')]",
+            "EA.APIKey": "[parameters('EAEnrollmentAPIKey')]"
+          }
+        }
+
       ]
-    },
-    
+    }
   ]
 }
